@@ -1,3 +1,5 @@
+import copy
+import functools
 import importlib
 import os
 import warnings
@@ -33,6 +35,83 @@ from enum import Enum
 
 # Type alias for URL matching
 UrlMatcher = Union[str, Callable[[str], bool], List[Union[str, Callable[[str], bool]]]]
+
+
+def _with_defaults(cls):
+    """Class decorator: adds set_defaults/get_defaults/reset_defaults classmethods.
+
+    After decorating, every new instance resolves parameters as:
+        explicit arg  >  class-level user defaults  >  hardcoded default
+
+    Usage::
+
+        BrowserConfig.set_defaults(headless=False, viewport_width=1920)
+        cfg = BrowserConfig()          # headless=False, viewport_width=1920
+        cfg = BrowserConfig(headless=True)  # explicit wins → headless=True
+    """
+    original_init = cls.__init__
+    sig = inspect.signature(original_init)
+    param_names = [p for p in sig.parameters if p != "self"]
+    valid_params = frozenset(param_names)
+
+    @functools.wraps(original_init)
+    def wrapped_init(self, *args, **kwargs):
+        user_defaults = type(self)._user_defaults
+        if user_defaults:
+            # Determine which params the caller passed explicitly
+            explicit = set(kwargs.keys())
+            for i in range(len(args)):
+                if i < len(param_names):
+                    explicit.add(param_names[i])
+            # Inject user defaults for non-explicit params
+            for key, value in user_defaults.items():
+                if key not in explicit:
+                    kwargs[key] = copy.deepcopy(value)
+        original_init(self, *args, **kwargs)
+
+    cls.__init__ = wrapped_init
+    cls._user_defaults = {}
+
+    @classmethod
+    def set_defaults(klass, **kwargs):
+        """Set class-level default overrides for new instances.
+
+        Args:
+            **kwargs: Parameter names and their default values.
+
+        Raises:
+            ValueError: If any key is not a valid ``__init__`` parameter.
+        """
+        invalid = set(kwargs) - valid_params
+        if invalid:
+            raise ValueError(
+                f"Invalid parameter(s) for {klass.__name__}: {invalid}"
+            )
+        for k, v in kwargs.items():
+            klass._user_defaults[k] = copy.deepcopy(v)
+
+    @classmethod
+    def get_defaults(klass):
+        """Return a deep copy of the current class-level defaults."""
+        return copy.deepcopy(klass._user_defaults)
+
+    @classmethod
+    def reset_defaults(klass, *names):
+        """Clear class-level defaults.
+
+        With no arguments, removes all overrides.
+        With arguments, removes only the named overrides.
+        """
+        if names:
+            for n in names:
+                klass._user_defaults.pop(n, None)
+        else:
+            klass._user_defaults.clear()
+
+    cls.set_defaults = set_defaults
+    cls.get_defaults = get_defaults
+    cls.reset_defaults = reset_defaults
+    return cls
 
 
 class MatchMode(Enum):
@@ -392,6 +471,7 @@ class ProxyConfig:
         config_dict.update(kwargs)
         return ProxyConfig.from_dict(config_dict)
 
+@_with_defaults
 class BrowserConfig:
     """
     Configuration class for setting up a browser instance and its context in AsyncPlaywrightCrawlerStrategy.
@@ -1032,6 +1112,7 @@ class HTTPCrawlerConfig:
             return config
         return HTTPCrawlerConfig.from_kwargs(config)
 
+@_with_defaults
 class CrawlerRunConfig():
 
     """
