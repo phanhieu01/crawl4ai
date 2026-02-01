@@ -25,6 +25,7 @@ We would like to thank the following people for their contributions to Crawl4AI:
 - [paulokuong](https://github.com/paulokuong) - fix: RAWL4_AI_BASE_DIRECTORY should be Path object instead of string [#298](https://github.com/unclecode/crawl4ai/pull/298)
 - [TheRedRad](https://github.com/theredrad) - feat: add force viewport screenshot option [#1694](https://github.com/unclecode/crawl4ai/pull/1694)
 - [ChiragBellara](https://github.com/ChiragBellara) - fix: avoid Common Crawl calls for sitemap-only URL seeding [#1746](https://github.com/unclecode/crawl4ai/pull/1746)
+- [YuriNachos](https://github.com/YuriNachos) - fix: replace tf-playwright-stealth with playwright-stealth [#1714](https://github.com/unclecode/crawl4ai/pull/1714), fix: respect `<base>` tag for relative link resolution [#1721](https://github.com/unclecode/crawl4ai/pull/1721), fix: include GoogleSearchCrawler script.js in package [#1719](https://github.com/unclecode/crawl4ai/pull/1719), fix: allow local embeddings by removing OpenAI fallback [#1717](https://github.com/unclecode/crawl4ai/pull/1717)
 
 #### Feb-Alpha-1
 - [sufianuddin](https://github.com/sufianuddin) - fix: [Documentation for JsonCssExtractionStrategy](https://github.com/unclecode/crawl4ai/issues/651)
