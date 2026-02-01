@@ -1,6 +1,6 @@
 # PR Review Todolist
 
-> Last updated: 2026-02-01 | Total open PRs: 85
+> Last updated: 2026-02-01 | Total open PRs: 81
 
 ---
 
@@ -14,22 +14,22 @@
 | ~~#1719~~ | ~~YuriNachos~~ | ~~Fix GoogleSearchCrawler `script.js` missing from package distribution. (#1711)~~ | **merged** |
 | ~~#1717~~ | ~~YuriNachos~~ | ~~Fix local sentence-transformers embeddings blocked by OpenAI fallback. (#1658)~~ | **merged** |
 | ~~#1714~~ | ~~YuriNachos~~ | ~~Fix: Replace `tf-playwright-stealth` with `playwright-stealth` dependency. (#1553)~~ | **merged** |
-| #1667 | christian-oudard | Fix `crwl --deep-crawl` only outputting first page. Real CLI bug with tests. | pending |
+| ~~#1667~~ | ~~christian-oudard~~ | ~~Fix `crwl --deep-crawl` only outputting first page. Real CLI bug with tests.~~ | **merged** |
 | #1640 | Martichou | Fix memory leak — unused browser contexts never cleaned up under continuous load. (#943) | pending |
 | #1622 | zhaoyun006 | Fix redirect target verification in AsyncUrlSeeder and enhance tests. | pending |
 | #1592 | jzmiller1 | Fix CDP page leaks and race conditions in concurrent crawling. (#1563) | pending |
 | #1572 | yuexuan-chen | Fix CDP setting with managed browser. | pending |
 | #1450 | prlz77 | Fix LLM extraction fails when content is in alternative response fields. | pending |
-| #1364 | nnxiong | Fix `<script>` tag removal losing adjacent text in `cleaned_html`. | pending |
+| ~~#1364~~ | ~~nnxiong~~ | ~~Fix `<script>` tag removal losing adjacent text in `cleaned_html`.~~ | **merged** |
 | #1308 | cjh-GITHUB | Fix css_selector variable type error (assigned to list). | pending |
-| #1296 | vladmandic | Fix `VersionManager` ignoring `CRAWL4_AI_BASE_DIRECTORY` env var. 1-line fix. | pending |
+| ~~#1296~~ | ~~vladmandic~~ | ~~Fix `VersionManager` ignoring `CRAWL4_AI_BASE_DIRECTORY` env var. 1-line fix.~~ | **merged** |
 | #1281 | garyluky | Fix proxy auth `ERR_INVALID_AUTH_CREDENTIALS`. Fixes #993, #974, #1109. | pending |
 | #1234 | hellokayas | Fix TypeError when `keep_data_attributes=False` by ensuring list concat. | pending |
 | #1211 | zhangbo-tj | Fix: safely create new page if no page exists in persistent context. | pending |
 | #1207 | ninjapanzer | Fix streaming error handling. | pending |
 | #1200 | Gyscos | Bugfix browser manager session handling. | pending |
 | #1179 | Nuo-55 | Fix leak token when input url as raw html. | pending |
-| #1150 | scris | Fix LLM extraction `response` variable not overridden causing `'str' has no attribute 'choices'`. | pending |
+| ~~#1150~~ | ~~scris~~ | ~~Fix LLM extraction `response` variable not overridden causing `'str' has no attribute 'choices'`.~~ | **closed (already fixed)** |
 | #1133 | Daniel21b | Enforce auth when JWT is enabled. 1-line fix. | pending |
 | #1106 | ruoyuGao | Fix: Adapt to CrawlerMonitor constructor change. | pending |
 | #1081 | Joorrit | Fix deep crawl scorer logic was inverted — high-distance paths scored higher. | pending |
@@ -147,3 +147,7 @@
 | #1698 | — | closed: duplicate of #1721 | 2026-02-01 |
 | #1697 | — | closed: duplicate of #1717 | 2026-02-01 |
 | #1710 | — | closed: duplicate of #1719 | 2026-02-01 |
+| #1667 | christian-oudard | fix: deep-crawl CLI outputting only the first page | 2026-02-01 |
+| #1296 | vladmandic | fix: VersionManager ignoring CRAWL4_AI_BASE_DIRECTORY env var | 2026-02-01 |
+| #1364 | nnxiong | fix: script tag removal losing adjacent text in cleaned_html | 2026-02-01 |
+| #1150 | scris | closed: LLM extraction response variable (already fixed on develop) | 2026-02-01 |
