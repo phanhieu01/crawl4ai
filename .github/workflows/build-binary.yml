@@ -13,7 +13,19 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x64
+            python: '3.11'
+            archive: tar.gz
+          - os: windows-2022
+            platform: windows-x64
+            python: '3.11'
+            archive: zip
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout code
@@ -22,7 +34,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python }}
 
       - name: Install Python dependencies
         run: |
@@ -33,14 +45,54 @@ jobs:
         run: |
           pip install -e .
 
-      - name: Build binary
+      - name: Install Playwright browsers (with dependencies)
         run: |
+          playwright install --with-deps chromium
+
+      - name: Get Playwright browsers directory
+        id: browser-paths
+        shell: bash
+        run: |
+          # Get Playwright browsers cache directory
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            PLAYWRIGHT_DIR="$LOCALAPPDATA/ms-playwright"
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            PLAYWRIGHT_DIR="$HOME/Library/Caches/ms-playwright"
+          else
+            PLAYWRIGHT_DIR="$HOME/.cache/ms-playwright"
+          fi
+          
+          echo "playwright_dir=$PLAYWRIGHT_DIR" >> $GITHUB_OUTPUT
+          
+          echo "🔍 Playwright browser directory:"
+          echo "  Path: $PLAYWRIGHT_DIR"
+          
+          if [ -d "$PLAYWRIGHT_DIR" ]; then
+            echo "  ✓ Directory exists"
+            du -sh "$PLAYWRIGHT_DIR" 2>/dev/null || echo "  Size: Unable to calculate"
+            echo "  Contents:"
+            ls -la "$PLAYWRIGHT_DIR" 2>/dev/null || echo "  Unable to list"
+          else
+            echo "  ✗ Directory NOT found!"
+            exit 1
+          fi
+
+      - name: Build binary with bundled browsers
+        shell: bash
+        run: |
+          SEPARATOR=":"
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            SEPARATOR=";"
+          fi
+          
           pyinstaller crawl4ai/cli.py \
             --name crawl4ai \
             --onefile \
             --console \
             --clean \
-            --add-data "crawl4ai/js_snippet:crawl4ai/js_snippet" \
+            --runtime-hook hook-playwright.py \
+            --add-data "crawl4ai/js_snippet${SEPARATOR}crawl4ai/js_snippet" \
+            --add-data "${{ steps.browser-paths.outputs.playwright_dir }}${SEPARATOR}ms-playwright" \
             --hidden-import crawl4ai.async_webcrawler \
             --hidden-import crawl4ai.async_crawler_strategy \
             --hidden-import crawl4ai.browser_manager \
@@ -53,19 +105,107 @@ jobs:
             --hidden-import crawl4ai.adaptive_crawler \
             --hidden-import crawl4ai.cache_context \
             --hidden-import crawl4ai.async_database \
+            --hidden-import playwright \
+            --hidden-import patchright \
+            --collect-all playwright \
+            --collect-all patchright \
+            --collect-all litellm \
             --strip \
             --optimize 2
 
+      - name: Test binary
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            ./dist/crawl4ai.exe --version || echo "Version check failed"
+            ./dist/crawl4ai.exe --help || echo "Help check failed"
+          else
+            chmod +x dist/crawl4ai
+            ./dist/crawl4ai --version || echo "Version check failed"
+            ./dist/crawl4ai --help || echo "Help check failed"
+          fi
+
+      - name: Verify package files exist
+        shell: bash
+        run: |
+          echo "📂 Checking required files..."
+          ls -la
+          echo ""
+          echo "Checking BINARY_README.md..."
+          if [ -f "BINARY_README.md" ]; then
+            echo "✅ BINARY_README.md found"
+          else
+            echo "❌ BINARY_README.md NOT FOUND!"
+            exit 1
+          fi
+          
+          echo ""
+          echo "Checking examples-binary/ directory..."
+          if [ -d "examples-binary" ]; then
+            echo "✅ examples-binary/ found"
+            echo "Contents:"
+            ls -la examples-binary/
+          else
+            echo "❌ examples-binary/ NOT FOUND!"
+            exit 1
+          fi
+
+      - name: Prepare distribution package
+        shell: bash
+        run: |
+          # Create distribution directory
+          mkdir -p dist/package
+          
+          # Copy binary
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            cp dist/crawl4ai.exe dist/package/
+          else
+            cp dist/crawl4ai dist/package/
+            chmod +x dist/package/crawl4ai
+          fi
+          
+          # Copy README and examples
+          cp BINARY_README.md dist/package/README.md
+          cp -r examples-binary dist/package/examples
+          
+          # Make example scripts executable (Linux/macOS)
+          if [ "$RUNNER_OS" != "Windows" ]; then
+            chmod +x dist/package/examples/*.sh 2>/dev/null || true
+          fi
+          
+          echo ""
+          echo "📦 Package contents:"
+          ls -la dist/package/
+          echo ""
+          echo "📝 Examples included:"
+          ls -la dist/package/examples/
+
       - name: Create archive
+        shell: bash
         run: |
           cd dist
-          tar -czf crawl4ai-linux-amd64.tar.gz crawl4ai
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            7z a crawl4ai-${{ matrix.platform }}.zip package/*
+          else
+            tar -czf crawl4ai-${{ matrix.platform }}.tar.gz -C package .
+          fi
+
+      - name: Generate checksum
+        shell: bash
+        run: |
+          cd dist
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            sha256sum crawl4ai-${{ matrix.platform }}.zip > crawl4ai-${{ matrix.platform }}.zip.sha256
+          else
+            sha256sum crawl4ai-${{ matrix.platform }}.tar.gz > crawl4ai-${{ matrix.platform }}.tar.gz.sha256
+          fi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: crawl4ai-linux-amd64
-          path: dist/crawl4ai-linux-amd64.tar.gz
+          name: crawl4ai-${{ matrix.platform }}
+          path: |
+            dist/crawl4ai-${{ matrix.platform }}.*
           retention-days: 90
 
   release:
@@ -82,13 +222,170 @@ jobs:
         with:
           path: artifacts
 
+      - name: Display artifact structure
+        run: |
+          ls -R artifacts/
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/crawl4ai-linux-amd64/crawl4ai-linux-amd64.tar.gz
+            artifacts/crawl4ai-linux-x64/crawl4ai-linux-x64.tar.gz
+            artifacts/crawl4ai-linux-x64/crawl4ai-linux-x64.tar.gz.sha256
+            artifacts/crawl4ai-windows-x64/crawl4ai-windows-x64.zip
+            artifacts/crawl4ai-windows-x64/crawl4ai-windows-x64.zip.sha256
           draft: false
           prerelease: false
           generate_release_notes: true
+          body: |
+            ## 🚀 Crawl4AI Standalone Binaries
+            
+            **Ready-to-use binaries with bundled Chromium browser** - No Python or installation required!
+            
+            ### 📦 Downloads
+            
+            Choose the appropriate binary for your platform:
+            
+            | Platform | Download | Size | Notes |
+            |----------|----------|------|-------|
+            | 🐧 **Linux x64** | `crawl4ai-linux-x64.tar.gz` | ~300MB | Ubuntu 22.04+ |
+            | 🪟 **Windows x64** | `crawl4ai-windows-x64.zip` | ~300MB | Windows 10+ |
+            | 🍎 **macOS Intel** | `crawl4ai-macos-x64.tar.gz` | ~300MB | macOS 11+ |
+            | 🍎 **macOS Apple Silicon** | `crawl4ai-macos-arm64.tar.gz` | ~300MB | macOS 11+ (M1/M2/M3) |
+            
+            ### ✅ What's Included
+            
+            Each archive contains:
+            - ✅ Crawl4AI executable (standalone)
+            - ✅ Chromium browser (bundled, ~300MB)
+            - ✅ SHA256 checksum for verification
+            
+            ### 🚀 Quick Start
+            
+            **Linux / macOS:**
+            ```bash
+            # Extract
+            tar -xzf crawl4ai-*.tar.gz
+            cd crawl4ai-*
+            
+            # Run
+            ./crawl4ai --help
+            
+            # Simple crawl
+            ./crawl4ai crawl https://example.com
+            
+            # Try examples
+            chmod +x examples/*.sh
+            ./examples/simple_crawl.sh
+            ```
+            
+            **Windows:**
+            ```cmd
+            # Extract crawl4ai-windows-x64.zip
+            # Then run:
+            crawl4ai.exe --help
+            
+            # Simple crawl
+            crawl4ai.exe crawl https://example.com
+            
+            # Try examples
+            examples\simple_crawl.bat
+            ```
+            
+            ### 🔐 Verify Download Integrity
+            
+            **Linux / macOS:**
+            ```bash
+            sha256sum -c crawl4ai-*.tar.gz.sha256
+            ```
+            
+            **Windows (PowerShell):**
+            ```powershell
+            Get-FileHash crawl4ai-windows-x64.zip -Algorithm SHA256
+            ```
+            
+            ### 📚 Documentation
+            
+            - **README.md** - Full usage guide (included in archive)
+            - **Examples** - 4 ready-to-use scripts (included in archive)
+            - **Online docs**: https://crawl4ai.com/docs
+            - **CLI help**: `crawl4ai --help`
+            
+            ### 🌟 Key Features
+            
+            - Fast async web crawling
+            - JavaScript rendering (SPA support)
+            - LLM-based content extraction
+            - CSS selector extraction
+            - Screenshot capture
+            - Multi-URL crawling
+            - Session management
+            - Proxy support
+            
+            ### 💡 Example Use Cases
+            
+            ```bash
+            # Extract specific content
+            ./crawl4ai crawl https://news.ycombinator.com \
+              --css-selector ".athing .titleline>a" \
+              --output stories.json
+            
+            # Capture screenshot
+            ./crawl4ai crawl https://example.com \
+              --screenshot page.png
+            
+            # Crawl multiple URLs
+            ./crawl4ai crawl \
+              https://example1.com \
+              https://example2.com \
+              https://example3.com \
+              --output results.json
+            
+            # Wait for dynamic content
+            ./crawl4ai crawl https://spa-app.com \
+              --wait-for "div.loaded" \
+              --js-only
+            ```
+            
+            ### ⚠️ Important Notes
+            
+            - **First run**: May take 5-10 seconds for browser initialization
+            - **Disk space**: ~500MB needed (binary + temp files)
+            - **macOS**: May need to allow in System Preferences → Security
+            - **Linux**: May need: `sudo apt-get install libglib2.0-0`
+            
+            ### 🐛 Issues & Support
+            
+            - Report bugs: https://github.com/unclecode/crawl4ai/issues
+            - Discussions: https://github.com/unclecode/crawl4ai/discussions
+            - Documentation: https://crawl4ai.com/docs
+            
+            ### 📄 License
+            
+            Apache License 2.0
+            
+            ---
+            
+            **Enjoy crawling! 🕷️**
+            - **macOS Apple Silicon (arm64)**: `crawl4ai-macos-arm64.tar.gz`
+            
+            All binaries include bundled Chromium browsers (~300MB each).
+            
+            **Verify checksums** using the `.sha256` files before running.
+            
+            ### Quick Start
+            
+            **Linux/macOS:**
+            ```bash
+            tar -xzf crawl4ai-*.tar.gz
+            chmod +x crawl4ai
+            ./crawl4ai --help
+            ```
+            
+            **Windows:**
+            ```cmd
+            unzip crawl4ai-windows-x64.zip
+            crawl4ai.exe --help
+            ```
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
