@@ -131,14 +131,37 @@ jobs:
             ./dist/crawl4ai --help || echo "Help check failed"
           fi
 
+      - name: Prepare distribution package
+        shell: bash
+        run: |
+          # Create distribution directory
+          mkdir -p dist/package
+          
+          # Copy binary
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            cp dist/crawl4ai.exe dist/package/
+          else
+            cp dist/crawl4ai dist/package/
+            chmod +x dist/package/crawl4ai
+          fi
+          
+          # Copy README and examples
+          cp BINARY_README.md dist/package/README.md
+          cp -r examples-binary dist/package/examples
+          
+          # Make example scripts executable (Linux/macOS)
+          if [ "$RUNNER_OS" != "Windows" ]; then
+            chmod +x dist/package/examples/*.sh 2>/dev/null || true
+          fi
+
       - name: Create archive
         shell: bash
         run: |
           cd dist
           if [ "$RUNNER_OS" == "Windows" ]; then
-            7z a crawl4ai-${{ matrix.platform }}.zip crawl4ai.exe
+            7z a crawl4ai-${{ matrix.platform }}.zip package/*
           else
-            tar -czf crawl4ai-${{ matrix.platform }}.tar.gz crawl4ai
+            tar -czf crawl4ai-${{ matrix.platform }}.tar.gz -C package .
           fi
 
       - name: Generate checksum
@@ -193,13 +216,137 @@ jobs:
           prerelease: false
           generate_release_notes: true
           body: |
-            ## Binary Downloads (with bundled browsers)
+            ## 🚀 Crawl4AI Standalone Binaries
+            
+            **Ready-to-use binaries with bundled Chromium browser** - No Python or installation required!
+            
+            ### 📦 Downloads
             
             Choose the appropriate binary for your platform:
             
-            - **Linux (x64)**: `crawl4ai-linux-x64.tar.gz`
-            - **Windows (x64)**: `crawl4ai-windows-x64.zip`
-            - **macOS Intel (x64)**: `crawl4ai-macos-x64.tar.gz`
+            | Platform | Download | Size | Notes |
+            |----------|----------|------|-------|
+            | 🐧 **Linux x64** | `crawl4ai-linux-x64.tar.gz` | ~300MB | Ubuntu 20.04+ |
+            | 🪟 **Windows x64** | `crawl4ai-windows-x64.zip` | ~300MB | Windows 10+ |
+            | 🍎 **macOS Intel** | `crawl4ai-macos-x64.tar.gz` | ~300MB | macOS 11+ |
+            | 🍎 **macOS Apple Silicon** | `crawl4ai-macos-arm64.tar.gz` | ~300MB | macOS 11+ (M1/M2/M3) |
+            
+            ### ✅ What's Included
+            
+            Each archive contains:
+            - ✅ Crawl4AI executable (standalone)
+            - ✅ Chromium browser (bundled, ~300MB)
+            - ✅ README with full documentation
+            - ✅ Example scripts (4 use cases)
+            - ✅ SHA256 checksum for verification
+            
+            ### 🚀 Quick Start
+            
+            **Linux / macOS:**
+            ```bash
+            # Extract
+            tar -xzf crawl4ai-*.tar.gz
+            cd crawl4ai-*
+            
+            # Run
+            ./crawl4ai --help
+            
+            # Simple crawl
+            ./crawl4ai crawl https://example.com
+            
+            # Try examples
+            chmod +x examples/*.sh
+            ./examples/simple_crawl.sh
+            ```
+            
+            **Windows:**
+            ```cmd
+            # Extract crawl4ai-windows-x64.zip
+            # Then run:
+            crawl4ai.exe --help
+            
+            # Simple crawl
+            crawl4ai.exe crawl https://example.com
+            
+            # Try examples
+            examples\simple_crawl.bat
+            ```
+            
+            ### 🔐 Verify Download Integrity
+            
+            **Linux / macOS:**
+            ```bash
+            sha256sum -c crawl4ai-*.tar.gz.sha256
+            ```
+            
+            **Windows (PowerShell):**
+            ```powershell
+            Get-FileHash crawl4ai-windows-x64.zip -Algorithm SHA256
+            ```
+            
+            ### 📚 Documentation
+            
+            - **README.md** - Full usage guide (included in archive)
+            - **Examples** - 4 ready-to-use scripts (included in archive)
+            - **Online docs**: https://crawl4ai.com/docs
+            - **CLI help**: `crawl4ai --help`
+            
+            ### 🌟 Key Features
+            
+            - Fast async web crawling
+            - JavaScript rendering (SPA support)
+            - LLM-based content extraction
+            - CSS selector extraction
+            - Screenshot capture
+            - Multi-URL crawling
+            - Session management
+            - Proxy support
+            
+            ### 💡 Example Use Cases
+            
+            ```bash
+            # Extract specific content
+            ./crawl4ai crawl https://news.ycombinator.com \
+              --css-selector ".athing .titleline>a" \
+              --output stories.json
+            
+            # Capture screenshot
+            ./crawl4ai crawl https://example.com \
+              --screenshot page.png
+            
+            # Crawl multiple URLs
+            ./crawl4ai crawl \
+              https://example1.com \
+              https://example2.com \
+              https://example3.com \
+              --output results.json
+            
+            # Wait for dynamic content
+            ./crawl4ai crawl https://spa-app.com \
+              --wait-for "div.loaded" \
+              --js-only
+            ```
+            
+            ### ⚠️ Important Notes
+            
+            - **First run**: May take 5-10 seconds for browser initialization
+            - **Disk space**: ~500MB needed (binary + temp files)
+            - **macOS**: May need to allow in System Preferences → Security
+            - **Linux**: May need: `sudo apt-get install libglib2.0-0`
+            
+            ### 🐛 Issues & Support
+            
+            - Report bugs: https://github.com/unclecode/crawl4ai/issues
+            - Discussions: https://github.com/unclecode/crawl4ai/discussions
+            - Documentation: https://crawl4ai.com/docs
+            
+            ### 📄 License
+            
+            Apache License 2.0
+            
+            ---
+            
+            **Enjoy crawling! 🕷️**
             - **macOS Apple Silicon (arm64)**: `crawl4ai-macos-arm64.tar.gz`
             
             All binaries include bundled Chromium browsers (~300MB each).
