@@ -100,7 +100,7 @@ jobs:
             --collect-all playwright \
             --collect-all patchright \
             --strip \
-            --optimize LEVEL 2
+            --optimize 2
 
       - name: Build Windows binary
         if: matrix.os == 'windows-2019'
@@ -134,7 +134,7 @@ jobs:
             --collect-all playwright `
             --collect-all patchright `
             --strip `
-            --optimize LEVEL 2
+            --optimize 2
 
       - name: Build macOS binary
         if: matrix.os == 'macos-13'
@@ -168,7 +168,7 @@ jobs:
             --collect-all playwright \
             --collect-all patchright \
             --strip \
-            --optimize LEVEL 2
+            --optimize 2
 
       - name: Create archive (Linux/macOS)
         if: matrix.os != 'windows-2019'
