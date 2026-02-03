@@ -12,7 +12,7 @@ import sys
 if getattr(sys, 'frozen', False):
     # We are running in a PyInstaller bundle
     bundle_dir = sys._MEIPASS
-    playwright_browsers_path = os.path.join(bundle_dir, 'playwright_browsers')
+    playwright_browsers_path = os.path.join(bundle_dir, 'ms-playwright')
     
     # Set environment variable for Playwright to find bundled browsers
     os.environ['PLAYWRIGHT_BROWSERS_PATH'] = playwright_browsers_path
@@ -28,4 +28,4 @@ if getattr(sys, 'frozen', False):
     else:
         print(f"❌ WARNING: Playwright browsers directory not found at {playwright_browsers_path}")
         print(f"   Bundle directory: {bundle_dir}")
-        print(f"   Available directories: {os.listdir(bundle_dir)}")
+        print(f"   Available in bundle: {[d for d in os.listdir(bundle_dir) if 'play' in d.lower() or 'browser' in d.lower()]}")
