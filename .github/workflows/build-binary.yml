@@ -15,18 +15,10 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-20.04, windows-2019, macos-13]
+        os: [ubuntu-20.04]
         include:
           - os: ubuntu-20.04
             os_name: linux
-            binary_ext: ''
-            binary_name: crawl4ai
-          - os: windows-2019
-            os_name: windows
-            binary_ext: '.exe'
-            binary_name: crawl4ai.exe
-          - os: macos-13
-            os_name: macos
             binary_ext: ''
             binary_name: crawl4ai
 
@@ -43,16 +35,10 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install system dependencies (Ubuntu)
-        if: matrix.os == 'ubuntu-20.04'
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon0 libgbm1 libasound2
-
-      - name: Install system dependencies (macOS)
-        if: matrix.os == 'macos-13'
-        run: |
-          brew install openssl
 
       - name: Install Python dependencies
         run: |
@@ -68,8 +54,7 @@ jobs:
           playwright install --with-deps chromium
           playwright install chrome
 
-      - name: Build Linux binary
-        if: matrix.os == 'ubuntu-20.04'
+      - name: Build binary
         run: |
           pyinstaller crawl4ai/cli.py \
             --name crawl4ai \
@@ -102,100 +87,16 @@ jobs:
             --strip \
             --optimize 2
 
-      - name: Build Windows binary
-        if: matrix.os == 'windows-2019'
-        run: |
-          pyinstaller crawl4ai/cli.py `
-            --name crawl4ai `
-            --onefile `
-            --console `
-            --clean `
-            --add-data "crawl4ai/js_snippet;crawl4ai/js_snippet" `
-            --hidden-import crawl4ai.async_webcrawler `
-            --hidden-import crawl4ai.async_crawler_strategy `
-            --hidden-import crawl4ai.browser_manager `
-            --hidden-import crawl4ai.extraction_strategy `
-            --hidden-import crawl4ai.markdown_generation_strategy `
-            --hidden-import crawl4ai.chunking_strategy `
-            --hidden-import crawl4ai.content_filter_strategy `
-            --hidden-import crawl4ai.content_scraping_strategy `
-            --hidden-import crawl4ai.deep_crawling `
-            --hidden-import crawl4ai.adaptive_crawler `
-            --hidden-import crawl4ai.cache_context `
-            --hidden-import crawl4ai.async_database `
-            --hidden-import playwright `
-            --hidden-import aiohttp `
-            --hidden-import aiofiles `
-            --hidden-import lxml `
-            --hidden-import beautifulsoup4 `
-            --hidden-import PIL `
-            --hidden-import pydantic `
-            --hidden-import yaml `
-            --collect-all playwright `
-            --collect-all patchright `
-            --strip `
-            --optimize 2
-
-      - name: Build macOS binary
-        if: matrix.os == 'macos-13'
-        run: |
-          pyinstaller crawl4ai/cli.py \
-            --name crawl4ai \
-            --onefile \
-            --console \
-            --clean \
-            --add-data "crawl4ai/js_snippet:crawl4ai/js_snippet" \
-            --hidden-import crawl4ai.async_webcrawler \
-            --hidden-import crawl4ai.async_crawler_strategy \
-            --hidden-import crawl4ai.browser_manager \
-            --hidden-import crawl4ai.extraction_strategy \
-            --hidden-import crawl4ai.markdown_generation_strategy \
-            --hidden-import crawl4ai.chunking_strategy \
-            --hidden-import crawl4ai.content_filter_strategy \
-            --hidden-import crawl4ai.content_scraping_strategy \
-            --hidden-import crawl4ai.deep_crawling \
-            --hidden-import crawl4ai.adaptive_crawler \
-            --hidden-import crawl4ai.cache_context \
-            --hidden-import crawl4ai.async_database \
-            --hidden-import playwright \
-            --hidden-import aiohttp \
-            --hidden-import aiofiles \
-            --hidden-import lxml \
-            --hidden-import beautifulsoup4 \
-            --hidden-import PIL \
-            --hidden-import pydantic \
-            --hidden-import yaml \
-            --collect-all playwright \
-            --collect-all patchright \
-            --strip \
-            --optimize 2
-
-      - name: Create archive (Linux/macOS)
-        if: matrix.os != 'windows-2019'
+      - name: Create archive
         run: |
           cd dist
           tar -czf crawl4ai-${{ matrix.os_name }}-amd64.tar.gz crawl4ai${{ matrix.binary_ext }}
 
-      - name: Create archive (Windows)
-        if: matrix.os == 'windows-2019'
-        run: |
-          cd dist
-          7z a crawl4ai-windows-amd64.zip crawl4ai.exe
-
-      - name: Upload artifacts (Linux/macOS)
-        if: matrix.os != 'windows-2019'
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: crawl4ai-${{ matrix.os_name }}-amd64
           path: dist/crawl4ai-${{ matrix.os_name }}-amd64.tar.gz
-          retention-days: 90
-
-      - name: Upload artifacts (Windows)
-        if: matrix.os == 'windows-2019'
-        uses: actions/upload-artifact@v4
-        with:
-          name: crawl4ai-windows-amd64
-          path: dist/crawl4ai-windows-amd64.zip
           retention-days: 90
 
   release:
@@ -217,8 +118,6 @@ jobs:
         with:
           files: |
             artifacts/crawl4ai-linux-amd64/crawl4ai-linux-amd64.tar.gz
-            artifacts/crawl4ai-macos-amd64/crawl4ai-macos-amd64.tar.gz
-            artifacts/crawl4ai-windows-amd64/crawl4ai-windows-amd64.zip
           draft: false
           prerelease: false
           generate_release_notes: true
