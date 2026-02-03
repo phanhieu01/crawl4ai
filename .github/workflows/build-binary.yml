@@ -61,29 +61,20 @@ jobs:
         run: |
           patchright install --with-deps chromium
 
-      - name: Get Playwright browser path
-        id: playwright-path
+      - name: Get browser installation directories
+        id: browser-paths
         shell: bash
         run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            PLAYWRIGHT_DIR=$(python -c "import os; from playwright._impl._driver import compute_driver_executable; print(os.path.dirname(compute_driver_executable()))" | tr '\\' '/')
-          else
-            PLAYWRIGHT_DIR=$(python -c "import os; from playwright._impl._driver import compute_driver_executable; print(os.path.dirname(compute_driver_executable()))")
-          fi
-          echo "playwright_dir=$PLAYWRIGHT_DIR" >> $GITHUB_OUTPUT
-          echo "Playwright directory: $PLAYWRIGHT_DIR"
-
-      - name: Get Patchright browser path
-        id: patchright-path
-        shell: bash
-        run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            PATCHRIGHT_DIR=$(python -c "import os; from patchright._impl._driver import compute_driver_executable; print(os.path.dirname(compute_driver_executable()))" | tr '\\' '/')
-          else
-            PATCHRIGHT_DIR=$(python -c "import os; from patchright._impl._driver import compute_driver_executable; print(os.path.dirname(compute_driver_executable()))")
-          fi
-          echo "patchright_dir=$PATCHRIGHT_DIR" >> $GITHUB_OUTPUT
-          echo "Patchright directory: $PATCHRIGHT_DIR"
+          # Get Playwright browsers cache directory
+          PLAYWRIGHT_BROWSERS=$(python -c "from playwright._impl._driver import get_driver_env; import os; print(get_driver_env()['PLAYWRIGHT_BROWSERS_PATH'])" 2>/dev/null || echo "$HOME/.cache/ms-playwright")
+          
+          # Get Patchright browsers cache directory  
+          PATCHRIGHT_BROWSERS=$(python -c "from patchright._impl._driver import get_driver_env; import os; print(get_driver_env()['PLAYWRIGHT_BROWSERS_PATH'])" 2>/dev/null || echo "$HOME/.cache/ms-playwright-patch")
+          
+          echo "playwright_dir=$PLAYWRIGHT_BROWSERS" >> $GITHUB_OUTPUT
+          echo "patchright_dir=$PATCHRIGHT_BROWSERS" >> $GITHUB_OUTPUT
+          echo "Playwright browsers: $PLAYWRIGHT_BROWSERS"
+          echo "Patchright browsers: $PATCHRIGHT_BROWSERS"
 
       - name: Build binary with bundled browsers
         shell: bash
@@ -99,8 +90,8 @@ jobs:
             --console \
             --clean \
             --add-data "crawl4ai/js_snippet${SEPARATOR}crawl4ai/js_snippet" \
-            --add-data "${{ steps.playwright-path.outputs.playwright_dir }}${SEPARATOR}playwright" \
-            --add-data "${{ steps.patchright-path.outputs.patchright_dir }}${SEPARATOR}patchright" \
+            --add-data "${{ steps.browser-paths.outputs.playwright_dir }}${SEPARATOR}ms-playwright" \
+            --add-data "${{ steps.browser-paths.outputs.patchright_dir }}${SEPARATOR}ms-playwright-patch" \
             --hidden-import crawl4ai.async_webcrawler \
             --hidden-import crawl4ai.async_crawler_strategy \
             --hidden-import crawl4ai.browser_manager \
