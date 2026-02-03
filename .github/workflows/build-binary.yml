@@ -65,16 +65,41 @@ jobs:
         id: browser-paths
         shell: bash
         run: |
-          # Get Playwright browsers cache directory
-          PLAYWRIGHT_BROWSERS=$(python -c "from playwright._impl._driver import get_driver_env; import os; print(get_driver_env()['PLAYWRIGHT_BROWSERS_PATH'])" 2>/dev/null || echo "$HOME/.cache/ms-playwright")
+          # Find actual Playwright browsers directory
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            PLAYWRIGHT_BROWSERS=$(find "$LOCALAPPDATA" -type d -name "ms-playwright" 2>/dev/null | head -1 || echo "$HOME/.cache/ms-playwright")
+          else
+            PLAYWRIGHT_BROWSERS=$(find "$HOME" -type d -name "ms-playwright" 2>/dev/null | head -1 || echo "$HOME/.cache/ms-playwright")
+          fi
           
-          # Get Patchright browsers cache directory  
-          PATCHRIGHT_BROWSERS=$(python -c "from patchright._impl._driver import get_driver_env; import os; print(get_driver_env()['PLAYWRIGHT_BROWSERS_PATH'])" 2>/dev/null || echo "$HOME/.cache/ms-playwright-patch")
+          # Find actual Patchright browsers directory
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            PATCHRIGHT_BROWSERS=$(find "$LOCALAPPDATA" -type d -name "ms-playwright-patch" 2>/dev/null | head -1 || echo "$HOME/.cache/ms-playwright-patch")
+          else
+            PATCHRIGHT_BROWSERS=$(find "$HOME" -type d -name "ms-playwright-patch" 2>/dev/null | head -1 || echo "$HOME/.cache/ms-playwright-patch")
+          fi
           
           echo "playwright_dir=$PLAYWRIGHT_BROWSERS" >> $GITHUB_OUTPUT
           echo "patchright_dir=$PATCHRIGHT_BROWSERS" >> $GITHUB_OUTPUT
-          echo "Playwright browsers: $PLAYWRIGHT_BROWSERS"
-          echo "Patchright browsers: $PATCHRIGHT_BROWSERS"
+          
+          echo "🔍 Browser directories found:"
+          echo "  Playwright: $PLAYWRIGHT_BROWSERS"
+          echo "  Patchright: $PATCHRIGHT_BROWSERS"
+          
+          # Verify directories exist and show size
+          if [ -d "$PLAYWRIGHT_BROWSERS" ]; then
+            echo "  ✓ Playwright directory exists"
+            du -sh "$PLAYWRIGHT_BROWSERS" 2>/dev/null || echo "  Unable to get size"
+          else
+            echo "  ✗ Playwright directory NOT found!"
+          fi
+          
+          if [ -d "$PATCHRIGHT_BROWSERS" ]; then
+            echo "  ✓ Patchright directory exists"
+            du -sh "$PATCHRIGHT_BROWSERS" 2>/dev/null || echo "  Unable to get size"
+          else
+            echo "  ✗ Patchright directory NOT found!"
+          fi
 
       - name: Build binary with bundled browsers
         shell: bash
