@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             platform: linux-x64
             python: '3.11'
             archive: tar.gz
@@ -246,7 +246,7 @@ jobs:
             
             | Platform | Download | Size | Notes |
             |----------|----------|------|-------|
-            | 🐧 **Linux x64** | `crawl4ai-linux-x64.tar.gz` | ~300MB | Ubuntu 20.04+ |
+            | 🐧 **Linux x64** | `crawl4ai-linux-x64.tar.gz` | ~300MB | Ubuntu 22.04+ |
             | 🪟 **Windows x64** | `crawl4ai-windows-x64.zip` | ~300MB | Windows 10+ |
             | 🍎 **macOS Intel** | `crawl4ai-macos-x64.tar.gz` | ~300MB | macOS 11+ |
             | 🍎 **macOS Apple Silicon** | `crawl4ai-macos-arm64.tar.gz` | ~300MB | macOS 11+ (M1/M2/M3) |

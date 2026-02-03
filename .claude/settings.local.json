@@ -22,7 +22,9 @@
       "Bash(docker compose:*)",
       "Bash(./test-final-integration.sh:*)",
       "Bash(mv:*)",
-      "Bash(gh:*)"
+      "Bash(gh:*)",
+      "Bash(while read run_id)",
+      "Bash(do echo:*)"
     ]
   },
   "enableAllProjectMcpServers": false
