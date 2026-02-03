@@ -13,32 +13,16 @@ on:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        os: [ubuntu-20.04]
-        include:
-          - os: ubuntu-20.04
-            os_name: linux
-            binary_ext: ''
-            binary_name: crawl4ai
-
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-20.04
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon0 libgbm1 libasound2
 
       - name: Install Python dependencies
         run: |
@@ -48,11 +32,6 @@ jobs:
       - name: Install crawl4ai
         run: |
           pip install -e .
-
-      - name: Install Playwright browsers
-        run: |
-          playwright install --with-deps chromium
-          playwright install chrome
 
       - name: Build binary
         run: |
@@ -74,29 +53,19 @@ jobs:
             --hidden-import crawl4ai.adaptive_crawler \
             --hidden-import crawl4ai.cache_context \
             --hidden-import crawl4ai.async_database \
-            --hidden-import playwright \
-            --hidden-import aiohttp \
-            --hidden-import aiofiles \
-            --hidden-import lxml \
-            --hidden-import beautifulsoup4 \
-            --hidden-import PIL \
-            --hidden-import pydantic \
-            --hidden-import yaml \
-            --collect-all playwright \
-            --collect-all patchright \
             --strip \
             --optimize 2
 
       - name: Create archive
         run: |
           cd dist
-          tar -czf crawl4ai-${{ matrix.os_name }}-amd64.tar.gz crawl4ai${{ matrix.binary_ext }}
+          tar -czf crawl4ai-linux-amd64.tar.gz crawl4ai
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: crawl4ai-${{ matrix.os_name }}-amd64
-          path: dist/crawl4ai-${{ matrix.os_name }}-amd64.tar.gz
+          name: crawl4ai-linux-amd64
+          path: dist/crawl4ai-linux-amd64.tar.gz
           retention-days: 90
 
   release:
