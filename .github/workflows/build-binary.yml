@@ -131,6 +131,31 @@ jobs:
             ./dist/crawl4ai --help || echo "Help check failed"
           fi
 
+      - name: Verify package files exist
+        shell: bash
+        run: |
+          echo "📂 Checking required files..."
+          ls -la
+          echo ""
+          echo "Checking BINARY_README.md..."
+          if [ -f "BINARY_README.md" ]; then
+            echo "✅ BINARY_README.md found"
+          else
+            echo "❌ BINARY_README.md NOT FOUND!"
+            exit 1
+          fi
+          
+          echo ""
+          echo "Checking examples-binary/ directory..."
+          if [ -d "examples-binary" ]; then
+            echo "✅ examples-binary/ found"
+            echo "Contents:"
+            ls -la examples-binary/
+          else
+            echo "❌ examples-binary/ NOT FOUND!"
+            exit 1
+          fi
+
       - name: Prepare distribution package
         shell: bash
         run: |
@@ -153,6 +178,13 @@ jobs:
           if [ "$RUNNER_OS" != "Windows" ]; then
             chmod +x dist/package/examples/*.sh 2>/dev/null || true
           fi
+          
+          echo ""
+          echo "📦 Package contents:"
+          ls -la dist/package/
+          echo ""
+          echo "📝 Examples included:"
+          ls -la dist/package/examples/
 
       - name: Create archive
         shell: bash
