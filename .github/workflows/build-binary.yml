@@ -90,6 +90,7 @@ jobs:
             --onefile \
             --console \
             --clean \
+            --runtime-hook hook-playwright.py \
             --add-data "crawl4ai/js_snippet${SEPARATOR}crawl4ai/js_snippet" \
             --add-data "${{ steps.browser-paths.outputs.playwright_dir }}${SEPARATOR}ms-playwright" \
             --hidden-import crawl4ai.async_webcrawler \
