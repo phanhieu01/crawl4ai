@@ -108,6 +108,7 @@ jobs:
             --hidden-import patchright \
             --collect-all playwright \
             --collect-all patchright \
+            --collect-all litellm \
             --strip \
             --optimize 2
 
