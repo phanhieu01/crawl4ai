@@ -57,48 +57,32 @@ jobs:
         run: |
           playwright install --with-deps chromium
 
-      - name: Install Patchright browsers (with dependencies)
-        run: |
-          patchright install --with-deps chromium
-
-      - name: Get browser installation directories
+      - name: Get Playwright browsers directory
         id: browser-paths
         shell: bash
         run: |
-          # Find actual Playwright browsers directory
+          # Get Playwright browsers cache directory
           if [ "$RUNNER_OS" == "Windows" ]; then
-            PLAYWRIGHT_BROWSERS=$(find "$LOCALAPPDATA" -type d -name "ms-playwright" 2>/dev/null | head -1 || echo "$HOME/.cache/ms-playwright")
+            PLAYWRIGHT_DIR="$LOCALAPPDATA/ms-playwright"
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            PLAYWRIGHT_DIR="$HOME/Library/Caches/ms-playwright"
           else
-            PLAYWRIGHT_BROWSERS=$(find "$HOME" -type d -name "ms-playwright" 2>/dev/null | head -1 || echo "$HOME/.cache/ms-playwright")
+            PLAYWRIGHT_DIR="$HOME/.cache/ms-playwright"
           fi
           
-          # Find actual Patchright browsers directory
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            PATCHRIGHT_BROWSERS=$(find "$LOCALAPPDATA" -type d -name "ms-playwright-patch" 2>/dev/null | head -1 || echo "$HOME/.cache/ms-playwright-patch")
+          echo "playwright_dir=$PLAYWRIGHT_DIR" >> $GITHUB_OUTPUT
+          
+          echo "🔍 Playwright browser directory:"
+          echo "  Path: $PLAYWRIGHT_DIR"
+          
+          if [ -d "$PLAYWRIGHT_DIR" ]; then
+            echo "  ✓ Directory exists"
+            du -sh "$PLAYWRIGHT_DIR" 2>/dev/null || echo "  Size: Unable to calculate"
+            echo "  Contents:"
+            ls -la "$PLAYWRIGHT_DIR" 2>/dev/null || echo "  Unable to list"
           else
-            PATCHRIGHT_BROWSERS=$(find "$HOME" -type d -name "ms-playwright-patch" 2>/dev/null | head -1 || echo "$HOME/.cache/ms-playwright-patch")
-          fi
-          
-          echo "playwright_dir=$PLAYWRIGHT_BROWSERS" >> $GITHUB_OUTPUT
-          echo "patchright_dir=$PATCHRIGHT_BROWSERS" >> $GITHUB_OUTPUT
-          
-          echo "🔍 Browser directories found:"
-          echo "  Playwright: $PLAYWRIGHT_BROWSERS"
-          echo "  Patchright: $PATCHRIGHT_BROWSERS"
-          
-          # Verify directories exist and show size
-          if [ -d "$PLAYWRIGHT_BROWSERS" ]; then
-            echo "  ✓ Playwright directory exists"
-            du -sh "$PLAYWRIGHT_BROWSERS" 2>/dev/null || echo "  Unable to get size"
-          else
-            echo "  ✗ Playwright directory NOT found!"
-          fi
-          
-          if [ -d "$PATCHRIGHT_BROWSERS" ]; then
-            echo "  ✓ Patchright directory exists"
-            du -sh "$PATCHRIGHT_BROWSERS" 2>/dev/null || echo "  Unable to get size"
-          else
-            echo "  ✗ Patchright directory NOT found!"
+            echo "  ✗ Directory NOT found!"
+            exit 1
           fi
 
       - name: Build binary with bundled browsers
@@ -116,7 +100,6 @@ jobs:
             --clean \
             --add-data "crawl4ai/js_snippet${SEPARATOR}crawl4ai/js_snippet" \
             --add-data "${{ steps.browser-paths.outputs.playwright_dir }}${SEPARATOR}ms-playwright" \
-            --add-data "${{ steps.browser-paths.outputs.patchright_dir }}${SEPARATOR}ms-playwright-patch" \
             --hidden-import crawl4ai.async_webcrawler \
             --hidden-import crawl4ai.async_crawler_strategy \
             --hidden-import crawl4ai.browser_manager \
